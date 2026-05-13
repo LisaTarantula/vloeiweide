@@ -4,7 +4,7 @@
   "description": "Oorlogsdrama op de Vloeiweide - Historisch platform voor Rijsbergen",
   "private": true,
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
     "dev": "concurrently -n server,client -c bgBlue,bgGreen \"npm run server\" \"npm run client\"",

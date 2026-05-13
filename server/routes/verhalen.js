@@ -1,51 +1,55 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { pool } = require('../database');
 const auth = require('../middleware/auth');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    res.json(db.prepare('SELECT * FROM verhalen WHERE gepubliceerd=1 ORDER BY created_at DESC').all());
+    const { rows } = await pool.query('SELECT * FROM verhalen WHERE gepubliceerd=1 ORDER BY created_at DESC');
+    res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/alle', auth, (req, res) => {
+router.get('/alle', auth, async (req, res) => {
   try {
-    res.json(db.prepare('SELECT * FROM verhalen ORDER BY created_at DESC').all());
+    const { rows } = await pool.query('SELECT * FROM verhalen ORDER BY created_at DESC');
+    res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const row = db.prepare('SELECT * FROM verhalen WHERE id=?').get(req.params.id);
-    if (!row) return res.status(404).json({ error: 'Niet gevonden' });
-    res.json(row);
+    const { rows } = await pool.query('SELECT * FROM verhalen WHERE id=$1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Niet gevonden' });
+    res.json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { titel, auteur, inhoud, samenvatting, foto_url, categorie, gepubliceerd } = req.body;
-    const r = db.prepare(
-      'INSERT INTO verhalen (titel, auteur, inhoud, samenvatting, foto_url, categorie, gepubliceerd) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(titel, auteur, inhoud, samenvatting || null, foto_url || null, categorie || 'verhaal', gepubliceerd !== undefined ? gepubliceerd : 1);
-    res.json({ id: Number(r.lastInsertRowid) });
+    const { rows } = await pool.query(
+      'INSERT INTO verhalen (titel,auteur,inhoud,samenvatting,foto_url,categorie,gepubliceerd) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+      [titel, auteur, inhoud, samenvatting || null, foto_url || null, categorie || 'verhaal', gepubliceerd !== undefined ? gepubliceerd : 1]
+    );
+    res.json({ id: rows[0].id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { titel, auteur, inhoud, samenvatting, foto_url, categorie, gepubliceerd } = req.body;
-    db.prepare(
-      'UPDATE verhalen SET titel=?, auteur=?, inhoud=?, samenvatting=?, foto_url=?, categorie=?, gepubliceerd=? WHERE id=?'
-    ).run(titel, auteur, inhoud, samenvatting, foto_url, categorie, gepubliceerd, req.params.id);
+    await pool.query(
+      'UPDATE verhalen SET titel=$1,auteur=$2,inhoud=$3,samenvatting=$4,foto_url=$5,categorie=$6,gepubliceerd=$7 WHERE id=$8',
+      [titel, auteur, inhoud, samenvatting, foto_url, categorie, gepubliceerd, req.params.id]
+    );
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
-    db.prepare('DELETE FROM verhalen WHERE id=?').run(req.params.id);
+    await pool.query('DELETE FROM verhalen WHERE id=$1', [req.params.id]);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

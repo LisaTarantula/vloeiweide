@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { init } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,11 +22,10 @@ app.use('/api/onderwijs', require('./routes/onderwijs'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-// Serve frontend in production
 const clientDist = path.join(__dirname, '..', 'client', 'dist');
 app.use(express.static(clientDist));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDist, 'index.html'));
-});
+app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
 
-app.listen(PORT, () => console.log(`Vloeiweide server draait op poort ${PORT}`));
+init()
+  .then(() => app.listen(PORT, () => console.log(`Vloeiweide server draait op poort ${PORT}`)))
+  .catch(err => { console.error('Database fout:', err.message); process.exit(1); });

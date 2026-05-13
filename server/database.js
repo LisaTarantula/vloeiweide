@@ -1,112 +1,104 @@
-const { DatabaseSync } = require('node:sqlite');
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 
-// DATA_DIR kan worden ingesteld op een Railway volume-pad voor persistentie
-const dataDir = process.env.DATA_DIR || path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+});
 
-const db = new DatabaseSync(path.join(dataDir, 'vloeiweide.db'));
-db.exec('PRAGMA journal_mode = WAL');
+async function init() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      id SERIAL PRIMARY KEY,
+      datum TEXT NOT NULL,
+      titel TEXT NOT NULL,
+      beschrijving TEXT NOT NULL,
+      categorie TEXT DEFAULT 'algemeen',
+      foto_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS verhalen (
+      id SERIAL PRIMARY KEY,
+      titel TEXT NOT NULL,
+      auteur TEXT NOT NULL,
+      inhoud TEXT NOT NULL,
+      samenvatting TEXT,
+      foto_url TEXT,
+      categorie TEXT DEFAULT 'verhaal',
+      gepubliceerd SMALLINT DEFAULT 1,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS archief (
+      id SERIAL PRIMARY KEY,
+      titel TEXT NOT NULL,
+      type TEXT NOT NULL,
+      beschrijving TEXT,
+      url TEXT,
+      embed_url TEXT,
+      thumbnail_url TEXT,
+      jaar INTEGER,
+      bron TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS locaties (
+      id SERIAL PRIMARY KEY,
+      naam TEXT NOT NULL,
+      beschrijving TEXT,
+      lat DOUBLE PRECISION NOT NULL,
+      lng DOUBLE PRECISION NOT NULL,
+      categorie TEXT DEFAULT 'locatie',
+      foto_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS gastboek (
+      id SERIAL PRIMARY KEY,
+      naam TEXT NOT NULL,
+      woonplaats TEXT,
+      bericht TEXT NOT NULL,
+      email TEXT,
+      goedgekeurd SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS publicaties (
+      id SERIAL PRIMARY KEY,
+      titel TEXT NOT NULL,
+      type TEXT NOT NULL,
+      auteur TEXT,
+      beschrijving TEXT,
+      jaar INTEGER,
+      isbn TEXT,
+      cover_url TEXT,
+      koop_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS herdenkingen (
+      id SERIAL PRIMARY KEY,
+      titel TEXT NOT NULL,
+      datum TEXT NOT NULL,
+      beschrijving TEXT,
+      locatie TEXT,
+      foto_url TEXT,
+      jaarlijks SMALLINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS onderwijs (
+      id SERIAL PRIMARY KEY,
+      titel TEXT NOT NULL,
+      type TEXT NOT NULL,
+      beschrijving TEXT NOT NULL,
+      doelgroep TEXT,
+      download_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  await seed();
+  console.log('Database gereed.');
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    datum TEXT NOT NULL,
-    titel TEXT NOT NULL,
-    beschrijving TEXT NOT NULL,
-    categorie TEXT DEFAULT 'algemeen',
-    foto_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
+async function seed() {
+  const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM events');
+  if (rows[0].count > 0) return;
 
-  CREATE TABLE IF NOT EXISTS verhalen (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    titel TEXT NOT NULL,
-    auteur TEXT NOT NULL,
-    inhoud TEXT NOT NULL,
-    samenvatting TEXT,
-    foto_url TEXT,
-    categorie TEXT DEFAULT 'verhaal',
-    gepubliceerd INTEGER DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS archief (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    titel TEXT NOT NULL,
-    type TEXT NOT NULL,
-    beschrijving TEXT,
-    url TEXT,
-    embed_url TEXT,
-    thumbnail_url TEXT,
-    jaar INTEGER,
-    bron TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS locaties (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    naam TEXT NOT NULL,
-    beschrijving TEXT,
-    lat REAL NOT NULL,
-    lng REAL NOT NULL,
-    categorie TEXT DEFAULT 'locatie',
-    foto_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS gastboek (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    naam TEXT NOT NULL,
-    woonplaats TEXT,
-    bericht TEXT NOT NULL,
-    email TEXT,
-    goedgekeurd INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS publicaties (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    titel TEXT NOT NULL,
-    type TEXT NOT NULL,
-    auteur TEXT,
-    beschrijving TEXT,
-    jaar INTEGER,
-    isbn TEXT,
-    cover_url TEXT,
-    koop_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS herdenkingen (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    titel TEXT NOT NULL,
-    datum TEXT NOT NULL,
-    beschrijving TEXT,
-    locatie TEXT,
-    foto_url TEXT,
-    jaarlijks INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS onderwijs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    titel TEXT NOT NULL,
-    type TEXT NOT NULL,
-    beschrijving TEXT NOT NULL,
-    doelgroep TEXT,
-    download_url TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
-
-function seed() {
-  const count = db.prepare('SELECT COUNT(*) as n FROM events').get().n;
-  if (count > 0) return;
-
-  const ie = db.prepare('INSERT INTO events (datum, titel, beschrijving, categorie) VALUES (?, ?, ?, ?)');
-  [
+  for (const [datum, titel, beschrijving, categorie] of [
     ['1940-05-10', 'Inval van Duitsland in Nederland', 'Op 10 mei 1940 viel Duitsland Nederland binnen. Na vijf dagen strijd capituleerde het Nederlandse leger. De bezetting begon - ook voor de inwoners van Rijsbergen en omgeving.', 'bezetting'],
     ['1940-05-15', 'Capitulatie Nederland', 'Het Nederlandse leger capituleerde. Voor de bevolking van Rijsbergen begon een lange periode van bezetting en onzekerheid.', 'bezetting'],
     ['1941-01-01', 'Vorming van de eerste verzetsgroepen', 'In het geheim werden de eerste georganiseerde verzetsgroepen actief in de regio rond Rijsbergen. Mannen en vrouwen riskeerden hun leven om informatie te verzamelen en onderduikers te helpen.', 'verzet'],
@@ -119,10 +111,14 @@ function seed() {
     ['1945-05-10', 'Eerste herdenking op de Vloeiweide', 'Nabestaanden en inwoners van Rijsbergen kwamen samen op de Vloeiweide voor de eerste herdenkingsplechtigheid.', 'herdenking'],
     ['1950-04-28', 'Onthulling herdenkingsmonument', 'Een permanent monument werd onthuld op de Vloeiweide, ter nagedachtenis aan alle slachtoffers van het oorlogsdrama.', 'monument'],
     ['1985-01-01', 'Publicatie eerste historisch boek', 'Het eerste uitgebreide historische boek over het oorlogsdrama op de Vloeiweide werd gepubliceerd, gebaseerd op archiefonderzoek en ooggetuigenverslagen.', 'publicatie'],
-  ].forEach(e => ie.run(...e));
+  ]) {
+    await pool.query(
+      'INSERT INTO events (datum, titel, beschrijving, categorie) VALUES ($1,$2,$3,$4)',
+      [datum, titel, beschrijving, categorie]
+    );
+  }
 
-  const iv = db.prepare('INSERT INTO verhalen (titel, auteur, inhoud, samenvatting, categorie) VALUES (?, ?, ?, ?, ?)');
-  [
+  for (const [titel, auteur, inhoud, samenvatting, categorie] of [
     [
       'De nacht die ik nooit vergat',
       'Jan de Vries (ooggetuige, toenmalig 10 jaar)',
@@ -134,81 +130,95 @@ De volgende ochtend, toen de zon opkwam boven de velden van Rijsbergen, hoorden 
 
 Mijn vader zei niets, maar ik zag hoe hij zijn hoofd boog. Hij kende sommigen van hen.
 
-Jaren later ben ik teruggekeerd naar die plek. Het monument staat er nu, stil en waardig in het gras. Ik leg er altijd bloemen neer - niet alleen voor de slachtoffers, maar ook voor de herinneringen die ik meedraag en die nooit zullen vervagen. Die nacht heeft mij gevormd tot wie ik ben. Ze heeft mij geleerd wat vrijheid waard is.`,
-      'Een ooggetuigenverslag van een toenmalig tienjarig kind over de dramatische nacht van 28 april 1945 en de impact ervan op zijn leven.',
+Jaren later ben ik teruggekeerd naar die plek. Het monument staat er nu, stil en waardig in het gras. Ik leg er altijd bloemen neer - niet alleen voor de slachtoffers, maar ook voor de herinneringen die ik meedraag en die nooit zullen vervagen.`,
+      'Een ooggetuigenverslag van een toenmalig tienjarig kind over de dramatische nacht van 28 april 1945.',
       'ooggetuige'
     ],
     [
       'Mijn vader was er bij',
       'Maria Verstappen',
-      `Mijn vader, Hendrik Verstappen, was actief lid van een verzetsgroep die opereerde vanuit de omgeving van Rijsbergen. Hij heeft mij weinig verteld over zijn ervaringen - dat deden de meeste mensen van zijn generatie niet - maar wat hij deelde, heeft mij diep geraakt en nooit meer losgelaten.
+      `Mijn vader, Hendrik Verstappen, was actief lid van een verzetsgroep die opereerde vanuit de omgeving van Rijsbergen. Hij heeft mij weinig verteld over zijn ervaringen - dat deden de meeste mensen van zijn generatie niet - maar wat hij deelde, heeft mij diep geraakt.
 
-"We wisten dat er gevaar was," zei hij eens, op een avond in 1972, terwijl hij naar het vuur staarde. Hij was toen al oud, maar zijn stem was scherp. "We wisten dat er verraders waren. Maar wat kon je doen? Je moest doorgaan. Je kon niet stoppen."
+"We wisten dat er gevaar was," zei hij eens, op een avond in 1972. "We wisten dat er verraders waren. Maar wat kon je doen? Je moest doorgaan."
 
-Enkele van zijn kameraden werden gearresteerd in maart 1945. Mijn vader ontsnapte aan de arrestaties omdat hij die dag ziek was geweest en thuis had moeten blijven. "Dat heeft me mijn leven gered," zei hij, "maar het heeft me ook de rest van mijn leven gekweld. Waarom ik wel, en zij niet?"
+Enkele van zijn kameraden werden gearresteerd in maart 1945. Mijn vader ontsnapte aan de arrestaties omdat hij die dag ziek was geweest en thuis had moeten blijven. "Dat heeft me mijn leven gered," zei hij, "maar het heeft me ook de rest van mijn leven gekweld."
 
-Na de oorlog bezocht mijn vader elk jaar de herdenking op de Vloeiweide. Hij stond altijd stil bij het monument, zijn pet in zijn handen, zijn ogen gesloten. Nooit huilde hij in het openbaar - dat was zijn generatie niet gegeven - maar ik weet dat hij het deed, alleen, 's nachts.
-
-Hij overleed in 1989. Op zijn grafsteen staat: 'Een man die zijn plicht deed.' Dat is precies wie hij was. En dankzij hem, en alle anderen die hun leven riskeerden, is onze wereld geworden wat ze is.`,
-      'Dochter van een voormalig verzetsstrijder vertelt over haar vader en zijn herinneringen aan de oorlogstijd en het drama op de Vloeiweide.',
+Hij overleed in 1989. Op zijn grafsteen staat: 'Een man die zijn plicht deed.'`,
+      'Dochter van een voormalig verzetsstrijder vertelt over haar vader en zijn herinneringen.',
       'nabestaande'
     ],
     [
       'De Vloeiweide vandaag: een plek van herinnering',
       'Redactie Vloeiweide Platform',
-      `De Vloeiweide is vandaag de dag een rustige plek aan de rand van Rijsbergen. Het gras wuift in de wind, vogels zingen in de bomen die de weide omzomen. Wandelaars komen er soms voorbij. Voor wie de geschiedenis niet kent, is het gewoon een mooi stuk groen.
+      `De Vloeiweide is vandaag de dag een rustige plek aan de rand van Rijsbergen. Het gras wuift in de wind, vogels zingen in de bomen die de weide omzomen. Voor wie de geschiedenis niet kent, is het gewoon een mooi stuk groen.
 
 Maar voor wie weet wat hier is gebeurd, is de Vloeiweide geladen met herinnering.
 
 Het monument, opgericht in 1950, staat er nog steeds. Elk jaar op 28 april verzamelen inwoners van Rijsbergen en omgeving zich hier. Scholen sturen hun leerlingen om te leren wat er eens is voorgevallen. Nabestaanden leggen bloemen neer bij de namen van hen die hier zijn gevallen.
 
-De Vloeiweide is meer dan een geografische plek. Ze is een symbool geworden - van wat mensen andere mensen kunnen aandoen, en van de prijs die betaald werd voor de vrijheid die wij nu als vanzelfsprekend beschouwen.
-
-Dit platform is opgericht om die herinnering levend te houden. Voor de mensen die het zelf hebben meegemaakt en die steeds minder worden. Voor hun kinderen en kleinkinderen. En voor alle generaties die nog zullen komen, die moeten weten wat hier eens is geschied op dit stille stuk grond in Brabant.
-
-Want wie de geschiedenis vergeet, is gedoemd haar te herhalen.`,
-      'Een beschrijving van de Vloeiweide als herdenkingsplek vandaag, en de betekenis van deze plek voor de gemeenschap van Rijsbergen.',
+Dit platform is opgericht om die herinnering levend te houden. Want wie de geschiedenis vergeet, is gedoemd haar te herhalen.`,
+      'Een beschrijving van de Vloeiweide als herdenkingsplek vandaag.',
       'informatie'
     ],
-  ].forEach(v => iv.run(...v));
+  ]) {
+    await pool.query(
+      'INSERT INTO verhalen (titel, auteur, inhoud, samenvatting, categorie) VALUES ($1,$2,$3,$4,$5)',
+      [titel, auteur, inhoud, samenvatting, categorie]
+    );
+  }
 
-  const il = db.prepare('INSERT INTO locaties (naam, beschrijving, lat, lng, categorie) VALUES (?, ?, ?, ?, ?)');
-  [
+  for (const [naam, beschrijving, lat, lng, categorie] of [
     ['De Vloeiweide', 'De plek waar het oorlogsdrama van 28 april 1945 plaatsvond. Nu een herdenkingsplek met een permanent monument.', 51.5075, 4.7028, 'drama'],
     ['Herdenkingsmonument', 'Het monument opgericht in 1950 ter nagedachtenis aan de slachtoffers van het drama op de Vloeiweide.', 51.5078, 4.7030, 'monument'],
-    ['Kerk van Rijsbergen (H. Lambertus)', 'De historische parochiekerk van Rijsbergen, een centraal punt in de gemeenschap tijdens de bezettingsjaren en daarna.', 51.5103, 4.7011, 'kerk'],
-    ['Gemeentehuis Rijsbergen', 'Het voormalige gemeentehuis van Rijsbergen, nu onderdeel van de gemeente Zundert. Speelde een rol tijdens de bezetting.', 51.5098, 4.6995, 'gebouw'],
-    ['Locatie verzetsactiviteiten', 'Een van de vermoedelijke locaties waar de lokale verzetsgroep bijeenkwam om activiteiten te organiseren.', 51.5120, 4.7050, 'verzet'],
-  ].forEach(l => il.run(...l));
+    ['Kerk van Rijsbergen (H. Lambertus)', 'De historische parochiekerk van Rijsbergen, een centraal punt in de gemeenschap tijdens de bezettingsjaren.', 51.5103, 4.7011, 'kerk'],
+    ['Gemeentehuis Rijsbergen', 'Het voormalige gemeentehuis van Rijsbergen, nu onderdeel van de gemeente Zundert.', 51.5098, 4.6995, 'gebouw'],
+    ['Locatie verzetsactiviteiten', 'Een van de vermoedelijke locaties waar de lokale verzetsgroep bijeenkwam.', 51.5120, 4.7050, 'verzet'],
+  ]) {
+    await pool.query(
+      'INSERT INTO locaties (naam, beschrijving, lat, lng, categorie) VALUES ($1,$2,$3,$4,$5)',
+      [naam, beschrijving, lat, lng, categorie]
+    );
+  }
 
-  const ip = db.prepare('INSERT INTO publicaties (titel, type, auteur, beschrijving, jaar) VALUES (?, ?, ?, ?, ?)');
-  [
-    ['Oorlogsdrama op de Vloeiweide', 'boek', 'Diverse auteurs', 'Een uitgebreid historisch overzicht van de gebeurtenissen op en rond de Vloeiweide tijdens de Tweede Wereldoorlog. Met ooggetuigenverslagen, archiefmateriaal en historische context.', 1985],
-    ['Stille Getuigen', 'toneelstuk', 'Toneel Rijsbergen', 'Een toneelstuk gebaseerd op de ware gebeurtenissen van april 1945 op de Vloeiweide. Geschreven en opgevoerd door de plaatselijke toneelvereniging.', 2010],
-    ['Rijsbergen in de oorlog', 'boek', 'P. Jansen', 'Een brede historische beschrijving van het leven in Rijsbergen tijdens de bezettingsjaren, met een uitgebreid hoofdstuk over de Vloeiweide en haar slachtoffers.', 1978],
-    ['Vrij maar niet vergeten', 'film', 'Documentairemakers Rijsbergen', 'Een documentaire over de bevrijding van Rijsbergen en het drama op de Vloeiweide. Bevat interviews met overlevenden en nabestaanden, opgenomen begin 21e eeuw.', 2005],
-    ['Namen op de steen', 'boek', 'A. van der Berg', 'Een biografisch overzicht van de slachtoffers wier namen op het monument op de Vloeiweide zijn gegraveerd. Met foto\'s en familieverhalen.', 2000],
-  ].forEach(p => ip.run(...p));
+  for (const [titel, type, auteur, beschrijving, jaar] of [
+    ['Oorlogsdrama op de Vloeiweide', 'boek', 'Diverse auteurs', 'Een uitgebreid historisch overzicht van de gebeurtenissen op en rond de Vloeiweide tijdens de Tweede Wereldoorlog.', 1985],
+    ['Stille Getuigen', 'toneelstuk', 'Toneel Rijsbergen', 'Een toneelstuk gebaseerd op de ware gebeurtenissen van april 1945 op de Vloeiweide.', 2010],
+    ['Rijsbergen in de oorlog', 'boek', 'P. Jansen', 'Een brede historische beschrijving van het leven in Rijsbergen tijdens de bezettingsjaren.', 1978],
+    ['Vrij maar niet vergeten', 'film', 'Documentairemakers Rijsbergen', 'Een documentaire over de bevrijding van Rijsbergen en het drama op de Vloeiweide.', 2005],
+    ['Namen op de steen', 'boek', 'A. van der Berg', 'Een biografisch overzicht van de slachtoffers van het monument op de Vloeiweide.', 2000],
+  ]) {
+    await pool.query(
+      'INSERT INTO publicaties (titel, type, auteur, beschrijving, jaar) VALUES ($1,$2,$3,$4,$5)',
+      [titel, type, auteur, beschrijving, jaar]
+    );
+  }
 
-  const ih = db.prepare('INSERT INTO herdenkingen (titel, datum, beschrijving, locatie, jaarlijks) VALUES (?, ?, ?, ?, ?)');
-  [
-    ['Jaarlijkse herdenking Vloeiweide', '28 april', 'De jaarlijkse herdenkingsplechtigheid op de Vloeiweide. Programma: bloemlegging bij het monument, toespraken van gemeente en nabestaanden, een moment van stilte en muziek.', 'De Vloeiweide, Rijsbergen', 1],
-    ['Nationale Dodenherdenking', '4 mei', 'De nationale herdenking waarbij ook stilgestaan wordt bij de slachtoffers van de Vloeiweide. Bijeenkomst bij het monument om 20:00 uur, gevolgd door twee minuten stilte.', 'Monument Vloeiweide, Rijsbergen', 1],
-    ['Bevrijdingsdag', '5 mei', 'Viering van de bevrijding met aandacht voor de lokale geschiedenis. Programma met muziek, verhalen en herinneringen aan zij die voor onze vrijheid stierven.', 'Rijsbergen centrum', 1],
-    ['Scholierenherdenking', 'April', 'Speciale herdenkingsbijeenkomst voor scholieren, georganiseerd in samenwerking met lokale scholen. Leerlingen leren over de geschiedenis en dragen zelf bij aan de herdenking.', 'De Vloeiweide, Rijsbergen', 1],
-  ].forEach(h => ih.run(...h));
+  for (const [titel, datum, beschrijving, locatie, jaarlijks] of [
+    ['Jaarlijkse herdenking Vloeiweide', '28 april', 'De jaarlijkse herdenkingsplechtigheid op de Vloeiweide. Bloemlegging, toespraken en een moment van stilte.', 'De Vloeiweide, Rijsbergen', 1],
+    ['Nationale Dodenherdenking', '4 mei', 'De nationale herdenking waarbij ook stilgestaan wordt bij de slachtoffers van de Vloeiweide. Om 20:00 uur.', 'Monument Vloeiweide, Rijsbergen', 1],
+    ['Bevrijdingsdag', '5 mei', 'Viering van de bevrijding met aandacht voor de lokale geschiedenis en de gevallenen.', 'Rijsbergen centrum', 1],
+    ['Scholierenherdenking', 'April', 'Speciale herdenkingsbijeenkomst voor scholieren, georganiseerd met lokale scholen.', 'De Vloeiweide, Rijsbergen', 1],
+  ]) {
+    await pool.query(
+      'INSERT INTO herdenkingen (titel, datum, beschrijving, locatie, jaarlijks) VALUES ($1,$2,$3,$4,$5)',
+      [titel, datum, beschrijving, locatie, jaarlijks]
+    );
+  }
 
-  const io = db.prepare('INSERT INTO onderwijs (titel, type, beschrijving, doelgroep) VALUES (?, ?, ?, ?)');
-  [
-    ['Les: Wat is verzet?', 'lesmateriaal', 'Een volledig lespakket over het Nederlandse verzet tijdens de Tweede Wereldoorlog, met specifieke aandacht voor Rijsbergen en de Vloeiweide. Inclusief werkbladen, bronnen en discussievragen. Duurt twee lessen.', 'Groep 7-8 basisschool'],
-    ['Excursie naar de Vloeiweide', 'activiteit', 'Een begeleide excursie naar de Vloeiweide voor schoolklassen. Gids vertelt het verhaal van wat er hier is gebeurd. Bezoek aan het monument met uitleg van de namen. Afsluiting met reflectiegesprek.', 'Basisschool groep 6-8, middelbare school'],
-    ['Project: Oral History - Verhalen optekenen', 'project', 'Een meersemesterproject waarbij leerlingen interviews afnemen met (na)bestaanden en inwoners van Rijsbergen over de bezettingsjaren. Resulteert in een tentoongestelde presentatie of publicatie.', 'Middelbare school (klas 2-4)'],
-    ['Lesfilm: Rijsbergen in de Tweede Wereldoorlog', 'lesmateriaal', 'Een educatieve film (25 minuten) speciaal gemaakt voor gebruik in de klas. Behandelt de bezettingstijd, het verzet en het drama op de Vloeiweide. Met begeleidend lesmateriaal voor de docent.', 'Groep 6-8, middelbare school klas 1-3'],
-    ['Werkblad: Wie waren de slachtoffers?', 'lesmateriaal', 'Een werkblad waarbij leerlingen onderzoek doen naar de achtergronden van de slachtoffers van de Vloeiweide. Leert over bronnenonderzoek en het belang van herdenken.', 'Middelbare school klas 1-3'],
-  ].forEach(o => io.run(...o));
+  for (const [titel, type, beschrijving, doelgroep] of [
+    ['Les: Wat is verzet?', 'lesmateriaal', 'Een volledig lespakket over het Nederlandse verzet tijdens de Tweede Wereldoorlog, met specifieke aandacht voor Rijsbergen en de Vloeiweide. Inclusief werkbladen en discussievragen.', 'Groep 7-8 basisschool'],
+    ['Excursie naar de Vloeiweide', 'activiteit', 'Een begeleide excursie naar de Vloeiweide voor schoolklassen. Gids vertelt het verhaal van wat er hier is gebeurd. Bezoek aan het monument.', 'Basisschool groep 6-8, middelbare school'],
+    ['Project: Oral History', 'project', 'Een meersemesterproject waarbij leerlingen interviews afnemen met (na)bestaanden en inwoners van Rijsbergen over de bezettingsjaren.', 'Middelbare school (klas 2-4)'],
+    ['Lesfilm: Rijsbergen in de Tweede Wereldoorlog', 'lesmateriaal', 'Een educatieve film (25 minuten) over de bezettingstijd, het verzet en het drama op de Vloeiweide. Met begeleidend lesmateriaal.', 'Groep 6-8, middelbare school klas 1-3'],
+    ['Werkblad: Wie waren de slachtoffers?', 'lesmateriaal', 'Een werkblad waarbij leerlingen onderzoek doen naar de achtergronden van de slachtoffers. Leert over bronnenonderzoek.', 'Middelbare school klas 1-3'],
+  ]) {
+    await pool.query(
+      'INSERT INTO onderwijs (titel, type, beschrijving, doelgroep) VALUES ($1,$2,$3,$4)',
+      [titel, type, beschrijving, doelgroep]
+    );
+  }
 
-  console.log('Voorbeelddata geladen in de database.');
+  console.log('Voorbeelddata geladen.');
 }
 
-seed();
-module.exports = db;
+module.exports = { pool, init };

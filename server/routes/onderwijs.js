@@ -1,37 +1,40 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const { pool } = require('../database');
 const auth = require('../middleware/auth');
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    res.json(db.prepare('SELECT * FROM onderwijs ORDER BY created_at DESC').all());
+    const { rows } = await pool.query('SELECT * FROM onderwijs ORDER BY created_at DESC');
+    res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { titel, type, beschrijving, doelgroep, download_url } = req.body;
-    const r = db.prepare(
-      'INSERT INTO onderwijs (titel, type, beschrijving, doelgroep, download_url) VALUES (?, ?, ?, ?, ?)'
-    ).run(titel, type, beschrijving, doelgroep || null, download_url || null);
-    res.json({ id: Number(r.lastInsertRowid) });
+    const { rows } = await pool.query(
+      'INSERT INTO onderwijs (titel,type,beschrijving,doelgroep,download_url) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+      [titel, type, beschrijving, doelgroep || null, download_url || null]
+    );
+    res.json({ id: rows[0].id });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/:id', auth, (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const { titel, type, beschrijving, doelgroep, download_url } = req.body;
-    db.prepare(
-      'UPDATE onderwijs SET titel=?, type=?, beschrijving=?, doelgroep=?, download_url=? WHERE id=?'
-    ).run(titel, type, beschrijving, doelgroep, download_url, req.params.id);
+    await pool.query(
+      'UPDATE onderwijs SET titel=$1,type=$2,beschrijving=$3,doelgroep=$4,download_url=$5 WHERE id=$6',
+      [titel, type, beschrijving, doelgroep, download_url, req.params.id]
+    );
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
-    db.prepare('DELETE FROM onderwijs WHERE id=?').run(req.params.id);
+    await pool.query('DELETE FROM onderwijs WHERE id=$1', [req.params.id]);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
