@@ -28,8 +28,10 @@ app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
 
 app.listen(PORT, () => {
   console.log(`Vloeiweide server draait op poort ${PORT}`);
-  console.log(`DATABASE_URL aanwezig: ${!!process.env.DATABASE_URL}`);
+  console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? process.env.DATABASE_URL.slice(0, 30) + '...' : 'NIET INGESTELD'}`);
   init()
     .then(() => console.log('Database gereed.'))
-    .catch(err => { console.error('FATAL database fout:', err.message); process.exit(1); });
+    .catch(err => {
+      console.error('Database fout bij opstarten:', err.message);
+    });
 });
