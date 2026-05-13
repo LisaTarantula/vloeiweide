@@ -30,11 +30,11 @@ export default function Home() {
       <section className="hero">
         <div className="container">
           <div className="hero-content">
-            <div className="hero-year">28 april 1945 — Rijsbergen</div>
+            <div className="hero-year">4–5 oktober 1944 — Rijsbergen</div>
             <h1>Oorlogsdrama op de Vloeiweide</h1>
             <p>
-              Een historisch platform over een van de pijnlijkste gebeurtenissen in de geschiedenis van Rijsbergen.
-              Bewaar de herinnering. Ken het verleden. Eer de gevallenen.
+              Op 4 oktober 1944 vielen de Duitsers de illegale radiopost op de Vloeiweide aan.
+              Zeventien mensen kwamen om het leven. Dit platform bewaart hun herinnering.
             </p>
             <div className="hero-actions">
               <Link to="/tijdlijn" className="btn btn-primary">Bekijk de tijdlijn</Link>
@@ -67,13 +67,14 @@ export default function Home() {
               <h2 className="section-title">De Vloeiweide</h2>
               <div className="gold-line" />
               <p style={{ color: 'var(--text-mid)', marginBottom: '1rem' }}>
-                Op 28 april 1945, slechts dagen voor de definitieve bevrijding van Nederland,
-                vond op de Vloeiweide bij Rijsbergen een dramatische gebeurtenis plaats.
-                Gevangenen werden er gefusilleerd door de Duitse bezetter.
+                Op 4 oktober 1944 overvielen de Duitsers het boswachtershuis van de familie Neefs
+                op het landgoed De Vloeiweide. De radiopost van de Ordedienst — geleid door
+                kunstleraar Paul Windhausen — werd vernietigd. Negen mensen stierven die dag.
               </p>
               <p style={{ color: 'var(--text-mid)', marginBottom: '1.5rem' }}>
-                Dit platform bewaart de herinneringen, de verhalen en de documenten over dit
-                oorlogsdrama — voor de huidige generatie en voor de toekomst.
+                De volgende dag werden op de Schietheide in het Mastbos bij Breda acht
+                verzetsmensen gefusilleerd. In totaal zeventien slachtoffers in twee dagen.
+                Dit platform bewaart hun namen en verhalen.
               </p>
               <Link to="/tijdlijn" className="btn btn-primary">Lees de volledige tijdlijn</Link>
             </div>
