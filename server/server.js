@@ -29,6 +29,6 @@ app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
 app.listen(PORT, () => {
   console.log(`Vloeiweide server draait op poort ${PORT}`);
   init()
-    .then(() => { dbReady = true; console.log('Database gereed.'); })
+    .then(() => console.log('Database gereed.'))
     .catch(err => { console.error('Database fout:', err.message); process.exit(1); });
 });
