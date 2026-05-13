@@ -344,6 +344,14 @@ Het waren de laatste oorlogsmaanden. De bevrijding van geheel Nederland zou nog 
       null,
       null
     ],
+    [
+      'De Geest van de Vloeiweide',
+      'toneelstuk',
+      'Toneelgroep Rijsbergen — naar het boek van John van Ierland',
+      'Toneelstuk gebaseerd op het gelijknamige boek van John van Ierland (2004). De productie van Toneelgroep Rijsbergen brengt het drama van 4-5 oktober 1944 op de planken: de overval op de radiopost, de brand in het boswachtershuis van de familie Neefs en de executies op de Schietheide. Het stuk werd opgevoerd ter gelegenheid van een van de herdenkingsjaren en trekt telkens een breed publiek uit de regio.',
+      null,
+      null
+    ],
   ]) {
     await pool.query(
       'INSERT INTO publicaties (titel,type,auteur,beschrijving,jaar,koop_url) VALUES ($1,$2,$3,$4,$5,$6)',
