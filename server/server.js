@@ -26,6 +26,9 @@ const clientDist = path.join(__dirname, '..', 'client', 'dist');
 app.use(express.static(clientDist));
 app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
 
-init()
-  .then(() => app.listen(PORT, () => console.log(`Vloeiweide server draait op poort ${PORT}`)))
-  .catch(err => { console.error('Database fout:', err.message); process.exit(1); });
+app.listen(PORT, () => {
+  console.log(`Vloeiweide server draait op poort ${PORT}`);
+  init()
+    .then(() => { dbReady = true; console.log('Database gereed.'); })
+    .catch(err => { console.error('Database fout:', err.message); process.exit(1); });
+});
