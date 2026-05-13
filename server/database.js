@@ -337,14 +337,6 @@ Het waren de laatste oorlogsmaanden. De bevrijding van geheel Nederland zou nog 
       null
     ],
     [
-      'Voorgrond, Achtergrond',
-      'toneelstuk',
-      'Toneelgroep Rijsbergen',
-      'Toneelstuk met film in drie bedrijven, gebaseerd op het drama op de Vloeiweide. Opgevoerd door de lokale toneelgroep van Rijsbergen ter gelegenheid van een van de herdenkingsjaren.',
-      null,
-      null
-    ],
-    [
       'De Geest van de Vloeiweide',
       'toneelstuk',
       'Toneelgroep Rijsbergen — naar het boek van John van Ierland',
