@@ -36,9 +36,6 @@ function LoginForm({ onLogin }) {
             {loading ? 'Inloggen...' : 'Inloggen'}
           </button>
         </form>
-        <p style={{ marginTop: '1.25rem', fontSize: '0.82rem', color: 'var(--text-light)', textAlign: 'center' }}>
-          Standaard wachtwoord: <code>admin123</code><br />Wijzig dit in <code>server/.env</code>
-        </p>
       </div>
     </div>
   );

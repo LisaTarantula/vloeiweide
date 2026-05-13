@@ -65,9 +65,9 @@ export default function Herdenking() {
             <div>
               <div style={{ background: 'var(--navy-dark)', color: 'white', borderRadius: '16px', padding: '2rem', textAlign: 'center', position: 'sticky', top: '80px' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🕯️</div>
-                <h3 style={{ color: 'white', marginBottom: '1rem' }}>28 april</h3>
+                <h3 style={{ color: 'white', marginBottom: '1rem' }}>Eerste zondag na 4 oktober</h3>
                 <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem', lineHeight: '1.7', marginBottom: '1.5rem' }}>
-                  Elk jaar op 28 april herdenken wij de slachtoffers van het drama op de Vloeiweide.
+                  Elk jaar op de eerste zondag na 4 oktober herdenken wij de slachtoffers van het drama op de Vloeiweide.
                   Wij nodigen iedereen uit om aanwezig te zijn bij de plechtigheid.
                 </p>
                 <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1rem' }}>

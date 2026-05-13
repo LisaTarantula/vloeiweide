@@ -167,7 +167,7 @@ export default function Home() {
         <div className="container text-center">
           <h2 style={{ color: 'white', fontSize: '2rem', marginBottom: '1rem' }}>Herdenk met ons</h2>
           <p style={{ color: 'rgba(255,255,255,0.75)', maxWidth: '560px', margin: '0 auto 2rem' }}>
-            Elk jaar op 28 april vindt de herdenkingsplechtigheid plaats op de Vloeiweide.
+            Elk jaar op de eerste zondag na 4 oktober vindt de herdenkingsplechtigheid plaats op de Vloeiweide.
             Kom langs, leg bloemen neer, en eer de gevallenen.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
