@@ -61,7 +61,7 @@ export default function Kaart() {
           {loading ? <LoadingSpinner /> : (
             <div className="map-wrapper" style={{ position: 'relative' }}>
               <MapContainer
-                center={[51.5095, 4.7011]}
+                center={[51.5445, 4.7046]}
                 zoom={15}
                 style={{ height: '540px', width: '100%' }}
               >
