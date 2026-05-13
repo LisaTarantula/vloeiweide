@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Oorlogsdrama op de Vloeiweide - Historisch platform voor Rijsbergen",
   "private": true,
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "dev": "concurrently -n server,client -c bgBlue,bgGreen \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
